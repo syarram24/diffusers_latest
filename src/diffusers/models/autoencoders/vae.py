@@ -187,12 +187,13 @@ class Encoder(nn.Module):
             # middle
             sample = self.mid_block(sample)
 
+        sample_bfr_post_process = sample
         # post-process
         sample = self.conv_norm_out(sample)
         sample = self.conv_act(sample)
         sample = self.conv_out(sample)
 
-        return sample
+        return sample_bfr_post_process, sample
 
 
 class Decoder(nn.Module):

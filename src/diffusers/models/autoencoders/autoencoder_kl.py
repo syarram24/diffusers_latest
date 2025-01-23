@@ -253,11 +253,11 @@ class AutoencoderKL(ModelMixin, ConfigMixin, FromOriginalModelMixin, PeftAdapter
         if self.use_tiling and (width > self.tile_sample_min_size or height > self.tile_sample_min_size):
             return self._tiled_encode(x)
 
-        enc = self.encoder(x)
+        sample_bfr_post_process, enc = self.encoder(x)
         if self.quant_conv is not None:
             enc = self.quant_conv(enc)
 
-        return enc
+        return sample_bfr_post_process, enc
 
     @apply_forward_hook
     def encode(
@@ -279,14 +279,14 @@ class AutoencoderKL(ModelMixin, ConfigMixin, FromOriginalModelMixin, PeftAdapter
             encoded_slices = [self._encode(x_slice) for x_slice in x.split(1)]
             h = torch.cat(encoded_slices)
         else:
-            h = self._encode(x)
+            sample_bfr_post_process, h = self._encode(x)
 
         posterior = DiagonalGaussianDistribution(h)
 
         if not return_dict:
             return (posterior,)
 
-        return AutoencoderKLOutput(latent_dist=posterior)
+        return sample_bfr_post_process, AutoencoderKLOutput(latent_dist=posterior)
 
     def _decode(self, z: torch.Tensor, return_dict: bool = True) -> Union[DecoderOutput, torch.Tensor]:
         if self.use_tiling and (z.shape[-1] > self.tile_latent_min_size or z.shape[-2] > self.tile_latent_min_size):
